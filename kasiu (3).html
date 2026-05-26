@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPRAWA OTWARTA</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00ff88;
+    --red: #ff2244;
+    --dim: #004d28;
+    --bg: #020a05;
+    --amber: #ffaa00;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+    cursor: default;
+    animation: flicker 0.12s infinite alternate;
+  }
+
+  @keyframes flicker {
+    from { opacity: 0.97; }
+    to   { opacity: 1; }
+  }
+
+  /* SCANLINES */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 9999;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.15) 2px,
+      rgba(0,0,0,0.15) 4px
+    );
+    pointer-events: none;
+  }
+
+  /* NOISE */
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 9998;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    opacity: 0.4;
+  }
+
+  .screen {
+    display: none;
+    min-height: 100vh;
+    padding: clamp(20px, 5vw, 60px);
+    position: relative;
+    z-index: 1;
+  }
+  .screen.active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+  /* HEADER */
+  .terminal-header {
+    position: fixed; top: 0; left: 0; right: 0;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--dim);
+    display: flex; justify-content: space-between;
+    font-size: 0.65rem; color: var(--dim);
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* CONTENT */
+  .case-number {
+    font-size: 0.7rem; color: var(--dim);
+    letter-spacing: 0.3em; margin-bottom: 40px;
+    text-align: center;
+  }
+
+  .main-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    font-weight: 300; font-style: italic;
+    color: var(--green);
+    text-align: center;
+    line-height: 1.6;
+    max-width: 600px;
+    margin-bottom: 48px;
+    text-shadow: 0 0 20px rgba(0,255,136,0.3);
+  }
+
+  .input-group {
+    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    width: 100%; max-width: 340px;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--green);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.2rem;
+    padding: 10px 4px;
+    text-align: center;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    outline: none;
+  }
+  input[type="text"]::placeholder { color: var(--dim); }
+  input[type="text"]:focus { border-bottom-color: var(--amber); color: var(--amber); }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    padding: 12px 32px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: var(--green); color: var(--bg); }
+
+  .error-msg {
+    color: var(--red);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    min-height: 20px;
+    text-align: center;
+    animation: glitch 0.3s ease;
+  }
+  @keyframes glitch {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-2px); }
+    80% { transform: translateX(2px); }
+  }
+
+  /* PHOTO FRAME */
+  .photo-frame {
+    border: 1px solid var(--dim);
+    padding: 16px;
+    margin-bottom: 40px;
+    position: relative;
+    max-width: 280px;
+  }
+  .photo-frame::before {
+    content: 'DOWÓD NR 001';
+    position: absolute; top: -10px; left: 16px;
+    background: var(--bg);
+    padding: 0 8px;
+    font-size: 0.6rem; color: var(--dim);
+    letter-spacing: 0.3em;
+  }
+  .hopek-img {
+    width: 200px; height: 200px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 80px;
+    filter: sepia(1) hue-rotate(80deg) saturate(0.5);
+    opacity: 0.7;
+  }
+
+  /* ETAP 2 - GLITCH */
+  .glitch-text {
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    color: var(--red);
+    text-align: center;
+    position: relative;
+    animation: textglitch 3s infinite;
+  }
+  @keyframes textglitch {
+    0%,90%,100% { text-shadow: none; transform: none; }
+    92% { text-shadow: -2px 0 var(--green), 2px 0 var(--red); transform: translateX(-2px); }
+    94% { text-shadow: 2px 0 var(--green), -2px 0 var(--red); transform: translateX(2px); }
+    96% { text-shadow: none; transform: none; }
+  }
+
+  .color-buttons {
+    display: flex; gap: 16px; margin: 32px 0;
+  }
+  .color-btn {
+    width: 80px; height: 80px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    transition: transform 0.2s, border-color 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .color-btn:hover { transform: scale(1.05); border-color: white; }
+  .color-btn.red { background: #330a0a; color: var(--red); }
+  .color-btn.white { background: #1a1a1a; color: #aaa; }
+  .color-btn.black { background: #000; color: #333; border-color: #222; }
+
+  /* ETAP 3 */
+  .black-screen {
+    background: #000;
+    width: 100vw; height: 100vh;
+    position: fixed; inset: 0; z-index: 500;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s;
+  }
+  .black-screen.show { opacity: 1; pointer-events: all; }
+
+  /* FINAL */
+  .access-granted {
+    text-align: center;
+    max-width: 500px;
+  }
+  .access-title {
+    font-size: clamp(1.5rem, 5vw, 3rem);
+    color: var(--green);
+    letter-spacing: 0.3em;
+    margin-bottom: 8px;
+    animation: fadeIn 1s ease 0.5s both;
+  }
+  .access-sub {
+    font-size: 0.7rem; color: var(--dim);
+    letter-spacing: 0.4em;
+    margin-bottom: 48px;
+    animation: fadeIn 1s ease 1s both;
+  }
+  .final-message {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
+    font-weight: 300; font-style: italic;
+    color: rgba(0,255,136,0.8);
+    line-height: 1.9;
+    margin-bottom: 48px;
+    animation: fadeIn 1s ease 1.5s both;
+  }
+  .download-btn {
+    animation: fadeIn 1s ease 2.5s both;
+    display: inline-block;
+    padding: 16px 40px;
+    border: 1px solid var(--green);
+    color: var(--green);
+    text-decoration: none;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.3s;
+  }
+  .download-btn:hover { background: var(--green); color: var(--bg); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* PROGRESS */
+  .progress {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 200;
+  }
+  .dot {
+    width: 6px; height: 6px;
+    border: 1px solid var(--dim);
+    border-radius: 50%;
+  }
+  .dot.done { background: var(--green); border-color: var(--green); }
+
+  /* TYPEWRITER */
+  .typewriter {
+    overflow: hidden;
+    white-space: nowrap;
+    animation: typing 2s steps(40) forwards;
+  }
+  @keyframes typing {
+    from { width: 0; }
+    to { width: 100%; }
+  }
+
+  .stamp {
+    border: 3px solid var(--red);
+    color: var(--red);
+    padding: 8px 20px;
+    display: inline-block;
+    letter-spacing: 0.4em;
+    font-size: 0.9rem;
+    transform: rotate(-8deg);
+    margin: 24px 0;
+    opacity: 0.8;
+  }
+
+  /* AUDIO BAR */
+  .audio-bar {
+    position: fixed; bottom: 50px; right: 20px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.6rem; color: var(--dim);
+    z-index: 200;
+  }
+  .audio-wave {
+    display: flex; gap: 2px; align-items: center;
+  }
+  .audio-wave span {
+    width: 2px; background: var(--dim);
+    animation: wave 1s ease-in-out infinite;
+  }
+  .audio-wave span:nth-child(1) { height: 8px; animation-delay: 0s; }
+  .audio-wave span:nth-child(2) { height: 14px; animation-delay: 0.1s; }
+  .audio-wave span:nth-child(3) { height: 10px; animation-delay: 0.2s; }
+  .audio-wave span:nth-child(4) { height: 16px; animation-delay: 0.3s; }
+  .audio-wave span:nth-child(5) { height: 8px; animation-delay: 0.4s; }
+  @keyframes wave {
+    0%,100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.4); }
+  }
+  .audio-wave.playing span { background: var(--green); }
+</style>
+</head>
+<body>
+
+<!-- AUDIO -->
+<audio id="bgMusic" loop>
+  <source src="https://play.3bfin.com/song/1315b41c-4678-43a5-b37f-922afaf026d2" type="audio/mpeg">
+</audio>
+
+<!-- TERMINAL HEADER -->
+<div class="terminal-header">
+  <span>SYSTEM v2.1.4 // ARCHIWUM RODZINNE</span>
+  <span id="clock"></span>
+  <span>STATUS: <span class="blink">●</span> AKTYWNY</span>
+</div>
+
+<!-- AUDIO BAR -->
+<div class="audio-bar">
+  <div class="audio-wave" id="audioWave">
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <span id="audioStatus">▶ ODTWARZAJ</span>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress">
+  <div class="dot" id="d1"></div>
+  <div class="dot" id="d2"></div>
+  <div class="dot" id="d3"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ETAP 1 — AKTA RODZINNE
+═══════════════════════════════════════════ -->
+<div class="screen active" id="s1">
+  <div class="case-number">SPRAWA NR: 06/05/1995 &nbsp;|&nbsp; KLASYFIKACJA: OSOBISTA</div>
+
+  <div class="photo-frame">
+    <div class="hopek-img">🐰</div>
+  </div>
+
+  <div class="main-text">
+    Szósta…<br>ale nie ulica.<br>
+    Szósta…<br>ale nie godzina.<br><br>
+    <em>Jak ją nazwano?</em>
+  </div>
+
+  <div class="input-group">
+    <input type="text" id="i1" placeholder="_ _ _ _" maxlength="10" autocomplete="off">
+    <div class="error-msg" id="e1">&nbsp;</div>
+    <button class="btn" onclick="check1()">POTWIERDŹ TOŻSAMOŚĆ</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ETAP 2 — FAŁSZYWY TROP
+═══════════════════════════════════════════ -->
+<div class="screen" id="s2">
+  <div class="case-number">PLIK: BUNCOLA.LOG &nbsp;|&nbsp; OSTRZEŻENIE: ZAKŁÓCENIA</div>
+
+  <div class="glitch-text">
+    Ruda obserwowała wszystko.<br>
+    Ale nigdy nie była kotem.
+  </div>
+
+  <div class="stamp">DOWÓD RZECZOWY</div>
+
+  <div style="font-size:0.75rem; color:var(--dim); letter-spacing:0.2em; margin-bottom:8px; text-align:center;">
+    WYBIERZ WŁAŚCIWY KOD DOSTĘPU
+  </div>
+
+  <div class="color-buttons">
+    <button class="color-btn red" onclick="wrongColor()">RED</button>
+    <button class="color-btn white" onclick="wrongColor()">WHITE</button>
+    <button class="color-btn black" onclick="rightColor()">BUNCOLA</button>
+  </div>
+
+  <div class="error-msg" id="e2">&nbsp;</div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     ETAP 3 — IDENTYFIKACJA KOŃCOWA
+═══════════════════════════════════════════ -->
+<div class="screen" id="s3">
+  <div class="case-number">POZIOM DOSTĘPU: ALPHA &nbsp;|&nbsp; OSTATNIA WERYFIKACJA</div>
+
+  <div class="main-text" style="font-size:clamp(1rem,3vw,1.6rem);">
+    Tylko jedna osoba<br>używa tego imienia.
+  </div>
+
+  <div style="font-size:0.65rem; color:var(--dim); letter-spacing:0.4em; margin-bottom:32px; text-align:center;">
+    PODAJ KOD IDENTYFIKACYJNY
+  </div>
+
+  <div class="input-group">
+    <input type="text" id="i3" placeholder="_ _ _ _ _" maxlength="10" autocomplete="off">
+    <div class="error-msg" id="e3">&nbsp;</div>
+    <button class="btn" onclick="check3()">WERYFIKUJ</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     FINAL — DOSTĘP PRZYZNANY
+═══════════════════════════════════════════ -->
+<div class="screen" id="sf">
+  <div class="access-granted">
+    <div class="access-title">DOSTĘP PRZYZNANY</div>
+    <div class="access-sub">JEDNOSTKA ZIDENTYFIKOWANA // TERMINATOR ONLINE</div>
+
+    <div class="final-message">
+      „Dziękujemy za wszystkie wojny,<br>
+      które wygrałaś po cichu.<br><br>
+      System potwierdza obecność<br>
+      jednostki odpornej."
+    </div>
+
+    <div style="font-size:0.65rem; color:var(--dim); letter-spacing:0.3em; margin-bottom:32px;">
+      🐰 &nbsp; HOPEK ZATWIERDZA &nbsp; 🐰
+    </div>
+
+    <button class="download-btn" onclick="showAtelier()">
+      ▶ OTWÓRZ AKTA AGNIECZKI
+    </button>
+  </div>
+</div>
+
+<!-- BLACK SCREEN TRANSITION -->
+<div class="black-screen" id="blackScreen">
+  <div style="font-family:'Share Tech Mono',monospace; color:#111; font-size:2rem; letter-spacing:0.5em;">
+    ████████
+  </div>
+</div>
+
+<script>
+  // CLOCK
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      now.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  }
+  setInterval(updateClock, 1000); updateClock();
+
+  // AUDIO
+  const music = document.getElementById('bgMusic');
+  const audioWave = document.getElementById('audioWave');
+  const audioStatus = document.getElementById('audioStatus');
+  let playing = false;
+
+  document.querySelector('.audio-bar').addEventListener('click', () => {
+    if (!playing) {
+      music.play().then(() => {
+        playing = true;
+        audioWave.classList.add('playing');
+        audioStatus.textContent = '■ GRA';
+      }).catch(() => {});
+    } else {
+      music.pause();
+      playing = false;
+      audioWave.classList.remove('playing');
+      audioStatus.textContent = '▶ ODTWARZAJ';
+    }
+  });
+
+  // Autoplay on first interaction
+  document.addEventListener('click', function tryPlay() {
+    if (!playing) {
+      music.play().then(() => {
+        playing = true;
+        audioWave.classList.add('playing');
+        audioStatus.textContent = '■ GRA';
+      }).catch(() => {});
+    }
+    document.removeEventListener('click', tryPlay);
+  }, { once: true });
+
+  // ENTER keys
+  document.getElementById('i1').addEventListener('keydown', e => { if(e.key==='Enter') check1(); });
+  document.getElementById('i3').addEventListener('keydown', e => { if(e.key==='Enter') check3(); });
+
+  // ETAP 1
+  function check1() {
+    const val = document.getElementById('i1').value.trim().toUpperCase();
+    const ok = ['MILA','MILENKA','MILENA','MILENECZKA'];
+    if (ok.includes(val)) {
+      document.getElementById('d1').classList.add('done');
+      transition('s1','s2');
+    } else {
+      const e = document.getElementById('e1');
+      e.textContent = 'BŁĘDNA ODPOWIEDŹ. SPRÓBUJ PONOWNIE.';
+      e.style.animation = 'none';
+      setTimeout(() => e.style.animation = '', 10);
+      document.getElementById('i1').value = '';
+    }
+  }
+
+  // ETAP 2 - kolory
+  function wrongColor() {
+    const e = document.getElementById('e2');
+    e.style.color = 'var(--red)';
+    e.textContent = '⚠ BŁĘDNY KOD — SYSTEM ZAKŁÓCONY';
+    e.style.animation = 'none';
+    setTimeout(() => e.style.animation = '', 10);
+    // glitch effect
+    document.body.style.animation = 'none';
+    setTimeout(() => document.body.style.animation = '', 300);
+  }
+
+  function rightColor() {
+    document.getElementById('d2').classList.add('done');
+    // black flash
+    const bs = document.getElementById('blackScreen');
+    bs.classList.add('show');
+    setTimeout(() => {
+      bs.classList.remove('show');
+      transition('s2','s3');
+    }, 800);
+  }
+
+  // ETAP 3
+  function check3() {
+    const val = document.getElementById('i3').value.trim().toUpperCase();
+    const ok = ['KASIU','KASIA','KASIEŃKO','KASIENKA'];
+    if (ok.includes(val)) {
+      document.getElementById('d3').classList.add('done');
+      // dramatic final transition
+      const bs = document.getElementById('blackScreen');
+      bs.classList.add('show');
+      setTimeout(() => {
+        bs.classList.remove('show');
+        transition('s3','sf');
+      }, 1200);
+    } else {
+      const e = document.getElementById('e3');
+      e.textContent = 'TOŻSAMOŚĆ NIEZIDENTYFIKOWANA.';
+      e.style.animation = 'none';
+      setTimeout(() => e.style.animation = '', 10);
+      document.getElementById('i3').value = '';
+    }
+  }
+
+  function transition(from, to) {
+    document.getElementById(from).classList.remove('active');
+    setTimeout(() => {
+      document.getElementById(to).classList.add('active');
+    }, 100);
+  }
+</script>
+<!-- ═══════════════════════════════════════════
+     STRONA agNIECKA — ukryta, otwierana po finale
+═══════════════════════════════════════════ -->
+<div id="atelierPage" style="display:none; position:fixed; inset:0; z-index:10000; overflow-y:auto; background:#f5f0ea;">
+
+<style>
+  #atelierPage * { box-sizing: border-box; }
+  #atelierPage {
+    font-family: 'Raleway', sans-serif;
+    color: #3a2e28;
+  }
+  #atelierPage .a-loader {
+    position:fixed; inset:0; z-index:99999;
+    background:#1a1410;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+  }
+  #atelierPage .a-loader.hidden { opacity:0; visibility:hidden; pointer-events:none; }
+  #atelierPage .a-snow svg { width:80px; height:80px; animation: spin2 4s linear infinite; opacity:0.85; }
+  @keyframes spin2 { to { transform:rotate(360deg); } }
+  #atelierPage .a-lname {
+    font-family:'Cormorant Garamond',serif;
+    font-size:clamp(2rem,6vw,3.5rem); font-weight:300;
+    color:#f5f0ea; letter-spacing:0.25em; text-transform:uppercase;
+    animation: fu2 1s ease 0.4s both;
+  }
+  #atelierPage .a-lsub {
+    font-family:'Raleway',sans-serif; font-size:0.75rem;
+    letter-spacing:0.4em; color:#c9a96e; text-transform:uppercase;
+    margin-top:10px; animation: fu2 1s ease 0.8s both;
+  }
+  #atelierPage .a-lbar {
+    width:180px; height:1px; background:rgba(201,169,110,0.25);
+    margin-top:36px; position:relative; overflow:hidden;
+    animation: fu2 0.5s ease 1s both;
+  }
+  #atelierPage .a-lbar::after {
+    content:''; position:absolute; top:0; left:-100%; height:100%; width:100%;
+    background:linear-gradient(90deg,transparent,#c9a96e,transparent);
+    animation: barSlide2 1.6s ease 1.2s forwards;
+  }
+  @keyframes barSlide2 { to { left:100%; } }
+  @keyframes fu2 { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+  #atelierPage nav {
+    position:sticky; top:0; z-index:100;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px clamp(20px,5vw,60px);
+    background:rgba(26,20,16,0.95);
+  }
+  #atelierPage .a-logo {
+    font-family:'Cormorant Garamond',serif;
+    font-size:1.4rem; letter-spacing:0.15em;
+    color:#f5f0ea; font-weight:300;
+  }
+  #atelierPage .a-logo span { color:#c9a96e; }
+
+  #atelierPage .a-hero {
+    min-height:100vh; display:grid; grid-template-columns:1fr 1fr;
+    background:#1a1410;
+  }
+  #atelierPage .a-hero-left {
+    display:flex; flex-direction:column; justify-content:center;
+    padding:clamp(40px,8vw,100px); background:#1a1410;
+  }
+  #atelierPage .a-tag { font-size:0.65rem; letter-spacing:0.5em; color:#c9a96e; text-transform:uppercase; margin-bottom:24px; }
+  #atelierPage .a-title {
+    font-family:'Cormorant Garamond',serif;
+    font-size:clamp(3rem,7vw,5.5rem); font-weight:300; line-height:1.05; color:#f5f0ea;
+  }
+  #atelierPage .a-title em { font-style:italic; color:#c9a96e; }
+  #atelierPage .a-desc { margin-top:28px; font-size:0.85rem; line-height:1.9; color:rgba(245,240,234,0.6); max-width:340px; }
+  #atelierPage .a-cta {
+    display:inline-flex; align-items:center; gap:12px; margin-top:44px;
+    padding:14px 32px; border:1px solid #c9a96e; color:#c9a96e;
+    font-size:0.7rem; letter-spacing:0.35em; text-transform:uppercase; text-decoration:none;
+    background:transparent; cursor:pointer; font-family:'Raleway',sans-serif;
+    transition:background 0.3s, color 0.3s;
+  }
+  #atelierPage .a-cta:hover { background:#c9a96e; color:#1a1410; }
+  #atelierPage .a-hero-right {
+    display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:3px; background:#1a1410;
+  }
+  #atelierPage .a-img {
+    overflow:hidden; display:flex; align-items:center; justify-content:center; font-size:5rem;
+  }
+  #atelierPage .a-img:nth-child(1) { background:#2a1f1a; grid-column:1; grid-row:1; }
+  #atelierPage .a-img:nth-child(2) { background:#1a2a1e; grid-column:2; grid-row:1/3; }
+  #atelierPage .a-img:nth-child(3) { background:#2a1a1e; grid-column:1; grid-row:2; }
+
+  #atelierPage .a-marquee { background:#c9a96e; padding:12px 0; overflow:hidden; }
+  #atelierPage .a-marquee-inner {
+    display:flex; animation: marquee2 20s linear infinite; white-space:nowrap;
+  }
+  #atelierPage .a-marquee-inner span { font-size:0.65rem; letter-spacing:0.4em; text-transform:uppercase; color:#1a1410; padding:0 32px; }
+  @keyframes marquee2 { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+  #atelierPage .a-section { padding:clamp(60px,10vw,120px) clamp(24px,6vw,80px); }
+  #atelierPage .a-section-label { font-size:0.65rem; letter-spacing:0.5em; text-transform:uppercase; color:#c9a96e; margin-bottom:16px; }
+  #atelierPage .a-section-title { font-family:'Cormorant Garamond',serif; font-size:clamp(2rem,5vw,3.5rem); font-weight:300; line-height:1.1; color:#1a1410; margin-bottom:24px; }
+  #atelierPage .a-section-title em { font-style:italic; color:#c47a8a; }
+
+  #atelierPage .a-cats { background:#1a1410; }
+  #atelierPage .a-cats .a-section-title { color:#f5f0ea; }
+  #atelierPage .a-cat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:2px; margin-top:48px; }
+  #atelierPage .a-cat { aspect-ratio:3/4; position:relative; overflow:hidden; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:4rem; }
+  #atelierPage .a-cat:nth-child(1){background:linear-gradient(135deg,#2a1f1a,#3d2b22)}
+  #atelierPage .a-cat:nth-child(2){background:linear-gradient(135deg,#1a2a1e,#243d28)}
+  #atelierPage .a-cat:nth-child(3){background:linear-gradient(135deg,#1e1a2a,#2a2340)}
+  #atelierPage .a-cat:nth-child(4){background:linear-gradient(135deg,#2a1a1e,#3d2228)}
+  #atelierPage .a-cat:nth-child(5){background:linear-gradient(135deg,#2a251a,#3d3522)}
+  #atelierPage .a-cat-ov { position:absolute; inset:0; background:linear-gradient(to top,rgba(26,20,16,0.9),transparent 50%); display:flex; flex-direction:column; justify-content:flex-end; padding:24px; }
+  #atelierPage .a-cat-name { font-family:'Cormorant Garamond',serif; font-size:1.4rem; color:#f5f0ea; font-weight:300; }
+  #atelierPage .a-cat-sub { font-size:0.65rem; color:#c9a96e; letter-spacing:0.3em; text-transform:uppercase; margin-top:4px; }
+
+  #atelierPage .a-contact-grid { display:grid; grid-template-columns:1fr 1fr; gap:48px; margin-top:48px; }
+  #atelierPage .a-contact-item { display:flex; align-items:center; gap:14px; margin-bottom:18px; }
+  #atelierPage .a-icon { width:40px; height:40px; border:1px solid #c9a96e; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+  #atelierPage .a-contact-text { font-size:0.85rem; line-height:1.6; }
+  #atelierPage .a-contact-text strong { display:block; color:#1a1410; font-weight:400; }
+
+  #atelierPage footer {
+    background:#1a1410; padding:40px clamp(24px,6vw,80px);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px;
+  }
+  #atelierPage .f-logo { font-family:'Cormorant Garamond',serif; font-size:1.5rem; color:#f5f0ea; font-weight:300; letter-spacing:0.15em; }
+  #atelierPage .f-logo span { color:#c9a96e; }
+  #atelierPage .f-copy { font-size:0.65rem; letter-spacing:0.25em; color:rgba(245,240,234,0.4); text-transform:uppercase; }
+
+  @media(max-width:768px){
+    #atelierPage .a-hero { grid-template-columns:1fr; }
+    #atelierPage .a-hero-right { height:250px; }
+    #atelierPage .a-contact-grid { grid-template-columns:1fr; }
+    #atelierPage .a-cat-grid { grid-template-columns:1fr 1fr; }
+  }
+</style>
+
+  <!-- LOADER wewnętrzny -->
+  <div class="a-loader" id="aLoader">
+    <div class="a-snow">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="50" y1="5" x2="50" y2="95" stroke="#c9a96e" stroke-width="2"/>
+        <line x1="5" y1="50" x2="95" y2="50" stroke="#c9a96e" stroke-width="2"/>
+        <line x1="18.4" y1="18.4" x2="81.6" y2="81.6" stroke="#c9a96e" stroke-width="2"/>
+        <line x1="81.6" y1="18.4" x2="18.4" y2="81.6" stroke="#c9a96e" stroke-width="2"/>
+        <circle cx="50" cy="5" r="3" fill="#c9a96e"/><circle cx="50" cy="95" r="3" fill="#c9a96e"/>
+        <circle cx="5" cy="50" r="3" fill="#c9a96e"/><circle cx="95" cy="50" r="3" fill="#c9a96e"/>
+        <circle cx="50" cy="50" r="7" fill="none" stroke="#c9a96e" stroke-width="2"/>
+        <circle cx="50" cy="50" r="3" fill="#c9a96e"/>
+      </svg>
+    </div>
+    <div class="a-lname">agNIECKA</div>
+    <div class="a-lsub">🌹 Rękodzielo z duszą</div>
+    <div class="a-lbar"></div>
+  </div>
+
+  <nav>
+    <div class="a-logo">ag<span>NIECKA</span></div>
+  </nav>
+
+  <div class="a-hero">
+    <div class="a-hero-left">
+      <div class="a-tag">✦ Rękodzielo autorskie · Polska</div>
+      <h1 class="a-title">Każda praca<br>to kawałek<br><em>duszy</em></h1>
+      <p class="a-desc">Szydełkowe płatki śniegu, stroiki i wieńce bożonarodzeniowe, wiązanki z kwiatów sztucznych i żywych, ubranka dla dzieci — wszystko robione z miłością, ręcznie, jedno po drugim.</p>
+      <button class="a-cta" onclick="document.getElementById('a-kontakt').scrollIntoView({behavior:'smooth'})">Zamów →</button>
+    </div>
+    <div class="a-hero-right">
+      <div class="a-img">❄️</div>
+      <div class="a-img">🌸</div>
+      <div class="a-img">🕯️</div>
+    </div>
+  </div>
+
+  <div class="a-marquee">
+    <div class="a-marquee-inner">
+      <span>Szydełkowanie</span><span>✦</span><span>Stroiki Świąteczne</span><span>✦</span>
+      <span>Wiązanki Kwiatowe</span><span>✦</span><span>Wieńce na Drzwi</span><span>✦</span>
+      <span>Ubranka Dziecięce</span><span>✦</span><span>Bukiety Sztuczne</span><span>✦</span>
+      <span>Zamówienia Indywidualne</span><span>✦</span>
+      <span>Szydełkowanie</span><span>✦</span><span>Stroiki Świąteczne</span><span>✦</span>
+      <span>Wiązanki Kwiatowe</span><span>✦</span><span>Wieńce na Drzwi</span><span>✦</span>
+      <span>Ubranka Dziecięce</span><span>✦</span><span>Bukiety Sztuczne</span><span>✦</span>
+      <span>Zamówienia Indywidualne</span><span>✦</span>
+    </div>
+  </div>
+
+  <div class="a-section a-cats">
+    <div class="a-section-label">✦ Co tworzę</div>
+    <h2 class="a-section-title">Moja <em>oferta</em></h2>
+    <div class="a-cat-grid">
+      <div class="a-cat"><div>❄️</div><div class="a-cat-ov"><div class="a-cat-name">Szydełkowanie</div><div class="a-cat-sub">płatki śniegu · ubranka · topy</div></div></div>
+      <div class="a-cat"><div>🌲</div><div class="a-cat-ov"><div class="a-cat-name">Stroiki Świąteczne</div><div class="a-cat-sub">z igliwia · z bombkami · ze świecą</div></div></div>
+      <div class="a-cat"><div>🌸</div><div class="a-cat-ov"><div class="a-cat-name">Bukiety & Wiązanki</div><div class="a-cat-sub">żywe · sztuczne · okolicznościowe</div></div></div>
+      <div class="a-cat"><div>🪢</div><div class="a-cat-ov"><div class="a-cat-name">Wieńce na Drzwi</div><div class="a-cat-sub">świąteczne · całoroczne</div></div></div>
+      <div class="a-cat" onclick="document.getElementById('a-galeria').scrollIntoView({behavior:'smooth'})"><div>🖼️</div><div class="a-cat-ov"><div class="a-cat-name">Galeria & Cennik</div><div class="a-cat-sub">aktualne prace · ceny</div></div></div>
+    </div>
+  </div>
+
+  <!-- GALERIA Z CENNIKIEM -->
+  <div class="a-section" id="a-galeria" style="background:#f5f0ea;">
+    <div class="a-section-label">✦ Aktualne prace</div>
+    <h2 class="a-section-title">Galeria<br>& <em>Cennik</em></h2>
+
+    <!-- SIATKA PRODUKTÓW -->
+    <div id="shopGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:24px;margin-top:48px;"></div>
+    <div id="shopEmpty" style="text-align:center;padding:60px 20px;color:rgba(58,46,40,0.35);font-size:0.85rem;letter-spacing:0.3em;text-transform:uppercase;">
+      Wkrótce pojawią się pierwsze prace 🌹
+    </div>
+
+    <!-- PRZYCISK PANEL ADMIN — mały, dyskretny w stopce sekcji -->
+    <div style="text-align:right;margin-top:40px;">
+      <button onclick="openAdmin()" style="background:transparent;border:none;color:rgba(58,46,40,0.2);font-size:0.6rem;letter-spacing:0.3em;cursor:pointer;font-family:Raleway,sans-serif;text-transform:uppercase;">⚙ panel</button>
+    </div>
+  </div>
+
+  <!-- PANEL ADMINA — ukryty -->
+  <div id="adminPanel" style="display:none;position:fixed;inset:0;z-index:20000;background:rgba(26,20,16,0.97);overflow-y:auto;padding:40px clamp(20px,5vw,60px);">
+    <div style="max-width:500px;margin:0 auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px;">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:#c9a96e;font-weight:300;">Panel agNIECKA</div>
+        <button onclick="closeAdmin()" style="background:transparent;border:1px solid rgba(201,169,110,0.3);color:#c9a96e;padding:8px 16px;cursor:pointer;font-family:Raleway,sans-serif;font-size:0.7rem;letter-spacing:0.2em;">✕ ZAMKNIJ</button>
+      </div>
+
+      <!-- HASŁO -->
+      <div id="adminLogin">
+        <div style="color:rgba(245,240,234,0.5);font-size:0.75rem;letter-spacing:0.3em;margin-bottom:16px;text-transform:uppercase;">Hasło dostępu</div>
+        <input id="adminPass" type="password" placeholder="••••••••"
+          style="width:100%;padding:14px;background:transparent;border:1px solid rgba(201,169,110,0.3);color:#f5f0ea;font-family:Raleway,sans-serif;font-size:1rem;outline:none;margin-bottom:12px;">
+        <div id="adminErr" style="color:#ff2244;font-size:0.7rem;letter-spacing:0.2em;min-height:20px;margin-bottom:12px;"></div>
+        <button onclick="checkPass()" style="width:100%;padding:14px;background:#c9a96e;border:none;color:#1a1410;font-family:Raleway,sans-serif;font-size:0.75rem;letter-spacing:0.35em;text-transform:uppercase;cursor:pointer;">WEJDŹ</button>
+      </div>
+
+      <!-- FORMULARZ DODAWANIA -->
+      <div id="adminForm" style="display:none;">
+        <div style="color:#c9a96e;font-size:0.7rem;letter-spacing:0.3em;text-transform:uppercase;margin-bottom:24px;">➕ Dodaj nową pracę</div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:0.65rem;letter-spacing:0.3em;color:rgba(245,240,234,0.4);text-transform:uppercase;margin-bottom:8px;">Zdjęcie</label>
+          <input type="file" id="adminImg" accept="image/*"
+            style="width:100%;padding:10px;background:transparent;border:1px solid rgba(201,169,110,0.3);color:#f5f0ea;font-family:Raleway,sans-serif;font-size:0.8rem;cursor:pointer;">
+          <div id="imgPreview" style="margin-top:10px;"></div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:0.65rem;letter-spacing:0.3em;color:rgba(245,240,234,0.4);text-transform:uppercase;margin-bottom:8px;">Nazwa pracy</label>
+          <input id="adminName" type="text" placeholder="np. Wieniec bożonarodzeniowy"
+            style="width:100%;padding:12px;background:transparent;border:1px solid rgba(201,169,110,0.3);color:#f5f0ea;font-family:Raleway,sans-serif;font-size:0.9rem;outline:none;">
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="display:block;font-size:0.65rem;letter-spacing:0.3em;color:rgba(245,240,234,0.4);text-transform:uppercase;margin-bottom:8px;">Opis (opcjonalnie)</label>
+          <textarea id="adminDesc" placeholder="Krótki opis, materiały, rozmiar..."
+            style="width:100%;padding:12px;background:transparent;border:1px solid rgba(201,169,110,0.3);color:#f5f0ea;font-family:Raleway,sans-serif;font-size:0.85rem;outline:none;height:80px;resize:none;"></textarea>
+        </div>
+
+        <div style="margin-bottom:24px;">
+          <label style="display:block;font-size:0.65rem;letter-spacing:0.3em;color:rgba(245,240,234,0.4);text-transform:uppercase;margin-bottom:8px;">Cena (zł)</label>
+          <input id="adminPrice" type="text" placeholder="np. 45 zł lub Od 35 zł"
+            style="width:100%;padding:12px;background:transparent;border:1px solid rgba(201,169,110,0.3);color:#f5f0ea;font-family:Raleway,sans-serif;font-size:0.9rem;outline:none;">
+        </div>
+
+        <button onclick="addItem()" style="width:100%;padding:14px;background:#c9a96e;border:none;color:#1a1410;font-family:Raleway,sans-serif;font-size:0.75rem;letter-spacing:0.35em;text-transform:uppercase;cursor:pointer;margin-bottom:32px;">DODAJ DO GALERII</button>
+
+        <!-- LISTA ISTNIEJĄCYCH -->
+        <div style="color:#c9a96e;font-size:0.7rem;letter-spacing:0.3em;text-transform:uppercase;margin-bottom:16px;">📋 Aktualne prace</div>
+        <div id="adminList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="a-section" id="a-kontakt" style="background:#f0ebe2;">
+    <div class="a-section-label">✦ Napisz do mnie</div>
+    <h2 class="a-section-title">Zamów swoje<br><em>wyjątkowe</em> dzieło</h2>
+    <div class="a-contact-grid">
+      <div>
+        <div class="a-contact-item"><div class="a-icon">📍</div><div class="a-contact-text"><strong>Adres</strong>Leszczanka 24, 22-170 Rejowiec Fabryczny</div></div>
+        <div class="a-contact-item"><div class="a-icon">📞</div><div class="a-contact-text"><strong>Telefon</strong><a href="tel:603195541" style="color:#c9a96e;text-decoration:none">603 195 541</a></div></div>
+        <div class="a-contact-item"><div class="a-icon">📦</div><div class="a-contact-text"><strong>Wysyłka</strong>Cała Polska · Odbiór osobisty</div></div>
+        <div class="a-contact-item"><div class="a-icon">💬</div><div class="a-contact-text"><strong>Facebook / Messenger</strong>Napisz — odpisuję szybko</div></div>
+        <div class="a-contact-item">
+          <div class="a-icon" style="background:#25D366;border-color:#25D366;color:white;">📱</div>
+          <div class="a-contact-text">
+            <strong>WhatsApp</strong>
+            <a href="https://wa.me/48603195541" target="_blank"
+              style="display:inline-flex;align-items:center;gap:8px;margin-top:6px;padding:10px 20px;background:#25D366;color:white;text-decoration:none;font-size:0.7rem;letter-spacing:0.25em;text-transform:uppercase;font-family:Raleway,sans-serif;">
+              Napisz na WhatsApp →
+            </a>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <input style="padding:14px;border:1px solid rgba(58,46,40,0.15);font-family:Raleway,sans-serif;font-size:0.85rem;outline:none;background:white" placeholder="Twoje imię">
+        <input style="padding:14px;border:1px solid rgba(58,46,40,0.15);font-family:Raleway,sans-serif;font-size:0.85rem;outline:none;background:white" placeholder="Telefon lub e-mail">
+        <textarea style="padding:14px;border:1px solid rgba(58,46,40,0.15);font-family:Raleway,sans-serif;font-size:0.85rem;outline:none;background:white;height:120px;resize:none" placeholder="Co chcesz zamówić?"></textarea>
+        <button style="padding:14px 36px;background:#1a1410;color:#f5f0ea;border:none;cursor:pointer;font-family:Raleway,sans-serif;font-size:0.7rem;letter-spacing:0.35em;text-transform:uppercase;align-self:flex-start">Wyślij zapytanie →</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="f-logo">ag<span>NIECKA</span> atelier</div>
+    <div class="f-copy">© 2025 · Leszczanka · Rejowiec Fabryczny · 603 195 541</div>
+  </footer>
+
+</div>
+
+<script>
+  // ═══════════════════════════════════
+  // PANEL ADMINA — agNIECKA
+  // ═══════════════════════════════════
+  const ADMIN_PASS = 'agNIECKA2025'; // ← hasło, zmień jak chcesz
+  const STORAGE_KEY = 'agniecka_items';
+
+  function loadItems() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch { return []; }
+  }
+  function saveItems(items) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }
+
+  function renderShop() {
+    const items = loadItems();
+    const grid = document.getElementById('shopGrid');
+    const empty = document.getElementById('shopEmpty');
+    if (!grid) return;
+    if (items.length === 0) {
+      grid.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    empty.style.display = 'none';
+    grid.style.display = 'grid';
+    grid.innerHTML = items.map((it, i) => `
+      <div style="background:white;overflow:hidden;box-shadow:0 2px 20px rgba(58,46,40,0.08);">
+        ${it.img ? `<div style="aspect-ratio:4/3;overflow:hidden;"><img src="${it.img}" style="width:100%;height:100%;object-fit:cover;display:block;"></div>` : `<div style="aspect-ratio:4/3;background:#f0ebe2;display:flex;align-items:center;justify-content:center;font-size:3rem;">🌸</div>`}
+        <div style="padding:20px;">
+          <div style="font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:300;color:#1a1410;margin-bottom:6px;">${it.name}</div>
+          ${it.desc ? `<div style="font-size:0.8rem;color:rgba(58,46,40,0.6);line-height:1.6;margin-bottom:10px;">${it.desc}</div>` : ''}
+          ${it.price ? `<div style="font-size:1rem;color:#c9a96e;font-family:'Cormorant Garamond',serif;font-style:italic;">${it.price}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderAdminList() {
+    const items = loadItems();
+    const list = document.getElementById('adminList');
+    if (!list) return;
+    if (items.length === 0) {
+      list.innerHTML = '<div style="color:rgba(245,240,234,0.3);font-size:0.75rem;text-align:center;padding:20px;">Brak prac</div>';
+      return;
+    }
+    list.innerHTML = items.map((it, i) => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid rgba(201,169,110,0.1);">
+        ${it.img ? `<img src="${it.img}" style="width:48px;height:48px;object-fit:cover;flex-shrink:0;">` : '<div style="width:48px;height:48px;background:rgba(201,169,110,0.1);flex-shrink:0;display:flex;align-items:center;justify-content:center;">🌸</div>'}
+        <div style="flex:1;min-width:0;">
+          <div style="color:#f5f0ea;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${it.name}</div>
+          ${it.price ? `<div style="color:#c9a96e;font-size:0.75rem;">${it.price}</div>` : ''}
+        </div>
+        <button onclick="deleteItem(${i})" style="background:transparent;border:1px solid rgba(255,34,68,0.3);color:#ff2244;padding:6px 12px;cursor:pointer;font-family:Raleway,sans-serif;font-size:0.65rem;letter-spacing:0.2em;flex-shrink:0;">USUŃ</button>
+      </div>
+    `).join('');
+  }
+
+  function openAdmin() {
+    document.getElementById('adminPanel').style.display = 'block';
+    document.getElementById('adminLogin').style.display = 'block';
+    document.getElementById('adminForm').style.display = 'none';
+    document.getElementById('adminPass').value = '';
+    document.getElementById('adminErr').textContent = '';
+  }
+  function closeAdmin() {
+    document.getElementById('adminPanel').style.display = 'none';
+  }
+
+  function checkPass() {
+    const val = document.getElementById('adminPass').value;
+    if (val === ADMIN_PASS) {
+      document.getElementById('adminLogin').style.display = 'none';
+      document.getElementById('adminForm').style.display = 'block';
+      renderAdminList();
+    } else {
+      document.getElementById('adminErr').textContent = 'Błędne hasło';
+    }
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.getElementById('adminLogin').style.display !== 'none') checkPass();
+  });
+
+  // podgląd zdjęcia
+  document.addEventListener('change', function(e) {
+    if (e.target.id === 'adminImg') {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        document.getElementById('imgPreview').innerHTML =
+          `<img src="${ev.target.result}" style="max-width:100%;max-height:200px;object-fit:contain;border:1px solid rgba(201,169,110,0.2);">`;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  function addItem() {
+    const name = document.getElementById('adminName').value.trim();
+    if (!name) { alert('Podaj nazwę pracy'); return; }
+    const desc = document.getElementById('adminDesc').value.trim();
+    const price = document.getElementById('adminPrice').value.trim();
+    const fileInput = document.getElementById('adminImg');
+    const file = fileInput.files[0];
+
+    function save(imgData) {
+      const items = loadItems();
+      items.unshift({ name, desc, price, img: imgData || '' });
+      saveItems(items);
+      renderShop();
+      renderAdminList();
+      // reset
+      document.getElementById('adminName').value = '';
+      document.getElementById('adminDesc').value = '';
+      document.getElementById('adminPrice').value = '';
+      fileInput.value = '';
+      document.getElementById('imgPreview').innerHTML = '';
+    }
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = ev => save(ev.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      save('');
+    }
+  }
+
+  function deleteItem(i) {
+    if (!confirm('Usunąć tę pracę?')) return;
+    const items = loadItems();
+    items.splice(i, 1);
+    saveItems(items);
+    renderShop();
+    renderAdminList();
+  }
+
+  // render przy otwarciu strony agNIECKA
+  function showAtelier() {
+    const page = document.getElementById('atelierPage');
+    page.style.display = 'block';
+    page.style.overflowY = 'hidden';
+    document.body.style.overflow = 'hidden';
+    // chowamy escape room żeby scroll działał na atelier
+    document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+    document.getElementById('blackScreen').style.display = 'none';
+    setTimeout(() => {
+      document.getElementById('aLoader').classList.add('hidden');
+      page.style.overflowY = 'auto';
+      renderShop();
+    }, 2800);
+  }
+</script>
+</body>
+</html>
